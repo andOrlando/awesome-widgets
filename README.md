@@ -1,4 +1,4 @@
-#awesome-widgets
+# awesome-widgets
 
 yep it's another awesomeWM thing of mine.
 
@@ -11,7 +11,7 @@ said external library.
 
 At some point I'll probably put some gifs here, but for now I'm too lazy.
 
-TODO:
+# TODO:
 - [ ] add gifs
 - [ ] add that super duper ultra cool slider I made
 - [ ] do more aniamted widgets

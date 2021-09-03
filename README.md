@@ -16,3 +16,4 @@ At some point I'll probably put some gifs here, but for now I'm too lazy.
 - [ ] add that super duper ultra cool slider I made
 - [ ] do more aniamted widgets
 - [ ] make cooler
+- [ ] make more customizable and just move all this stuff to bling

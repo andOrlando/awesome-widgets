@@ -7,7 +7,7 @@ actually like because they're kinda useful. I will probably continue adding to
 this as I make more widgets that other people might find useful. I'll also
 outline what each of the widgets do.
 
-#animated icons
+# animated icons
 
 currently available: hamburger and playpause
 
@@ -19,7 +19,7 @@ cairo animation yourself if you pick these up. At some point I'll make gifs for
 these when I actually implement them in my new rice or if I find my old videos
 of them.
 
-#slider
+# slider
 
 This is an improved version of the awesome slider. The handle fades out
 slightly when you hover over it, it has as subtle lag to its movement using
@@ -31,7 +31,7 @@ state its a good foundation if you wanted to do more complicated
 handle-hover-things. It's not particularly well documented but it's pretty
 useful regardless
 
-#coolwidget
+# coolwidget
 
 Okay this one's actually really cool. It takes long widget-chains and turms
 them into not-so-long singular widgets, effectively flattening your tables.
@@ -66,8 +66,8 @@ local w = wibox.widget {
 			valign = "center",
 			widget = wibox.container.place
 		},
-		widget = wibox.container.margin
-		margins = 5
+		widget = wibox.container.margin,
+		left = 25
 	},
 	bg = "#000000",
 	widget = wibox.container.background
@@ -85,7 +85,7 @@ wibox.widget {
 	valign = "center",
 	bg = "#000000",
 	left = 25,
-	layout = coolwidget.background.margin.place.align.horizontal.debug
+	layout = coolwidget.background.margin.place.align.horizontal
 },
 ```
 

@@ -11,6 +11,12 @@ local PROPERTIES = {
 	place = { "valign", "halign" }
 }
 
+--helper table function
+local function index(table, value)
+	for k,v in pairs(table) do if v == value then return k end end
+	return false
+end
+
 -- literally just contains a widget
 -- that's literally it
 local function simple_container()
@@ -37,8 +43,8 @@ local function passthrough_container()
 
 	function w:fit(...) return w._private.widget:fit(...) end
 	function w:layout(...) return w._private.widget:layout(...) end
-	function w:before_draw_children(...) if w._private.widget.before_draw_children then w.child:before_draw_children(...) end end
-	function w:after_draw_children(...) if w._private.widget.after_draw_children then w.child:after_draw_children(...) end end
+	function w:before_draw_children(...) if w._private.widget.before_draw_children then w._private.widget:before_draw_children(...) end end
+	function w:after_draw_children(...) if w._private.widget.after_draw_children then w._private.widget:after_draw_children(...) end end
 	return w
 end
 
@@ -138,6 +144,9 @@ end
 -- and the last 1-2 determining layout type and orientation. It maps
 -- properties set to its designated container with the PROPERTIES constant
 local function create(args)
+	---@diagnostic disable-next-line: unused-local
+	local debug; if args[#args] == "debug" then debug = true; table.remove(args, #args) end
+
 	--parts is where we save all the containers
 	local parts = {}
 
@@ -179,7 +188,7 @@ local function create(args)
 	function mt:__index(key)
 		--autogenerate setters
 		if key:match("set_") then
-			for k, v in pairs(PROPERTIES) do if table.index(v, key:sub(5)) then return function(_, value) rawget(parts[k], key)(parts[k], value) end end end
+			for k, v in pairs(PROPERTIES) do if index(v, key:sub(5)) then return function(_, value) rawget(parts[k], key)(parts[k], value) end end end
 			return nil --if it's not in there just return nothing
 		end
 
@@ -187,7 +196,7 @@ local function create(args)
 		if key == "expand" or key == "spacing" then return rawget(main, "get_"..key)(main) end
 
 		--check if it's in properties anywhere
-		for k, v in pairs(PROPERTIES) do if table.index(v, key) then return rawget(parts[k], "get_"..key)(parts[k]) end end
+		for k, v in pairs(PROPERTIES) do if index(v, key) then return rawget(parts[k], "get_"..key)(parts[k]) end end
 
 		--otherwise pass to widget.base
 		return ___index(self, key)
@@ -197,7 +206,7 @@ local function create(args)
 		if key == "expand" or key == "spacing" then return rawget(main, "set_"..key)(main, value) end
 
 		--check for property and setter
-		for k, v in pairs(PROPERTIES) do if table.index(v, key:gsub("set_", "")) then return rawget(parts[k], "set_"..key)(parts[k], value) end end
+		for k, v in pairs(PROPERTIES) do if index(v, key:gsub("set_", "")) then return rawget(parts[k], "set_"..key)(parts[k], value) end end
 
 		--otherwise pass to widget.base
 		return ___newindex(self, key, value)

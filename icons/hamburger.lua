@@ -1,6 +1,8 @@
 local wibox = require 'wibox'
 local rubato = require 'lib.rubato'
 local awful = require 'awful'
+local naughty = require 'naughty'
+local gears = require 'gears'
 
 local function get_draw_function(pos)
 	return function(_, _, cr, _, height)
@@ -62,20 +64,17 @@ local function get_draw_function(pos)
 end
 
 local function hamburger(other_button)
-	local state = 0
 	local timed
 
 	local w = wibox.widget {
 
 		draw = get_draw_function(0),
 		fit = function(_, _, _, height) return height, height end,
-		buttons = {
-			awful.button({}, 1, function()
-				state = (state + 1) % 2
-				timed.target = state
-			end),
+		buttons = gears.table.join(
+			-- switch state
+			awful.button({}, 1, function() timed.target = (timed.target + 1) % 2 end),
 			other_button
-		},
+		),
 		widget = wibox.widget.make_base_widget
 	}
 

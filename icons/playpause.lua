@@ -1,6 +1,7 @@
 local wibox = require 'wibox'
 local rubato = require 'lib.rubato'
 local awful = require 'awful'
+local gears = require 'gears'
 
 --helper object to update values should hight ever change
 local function create_point_maker()
@@ -100,15 +101,15 @@ local function playpause(args)
 
 	local point_maker = create_point_maker()
 	local timed --early init of interpolator
-	local target = 0
 
 	local widget = wibox.widget {
 		draw = get_draw(0, point_maker),
 		fit = function(_, _, _, height) return height, height end,
-		buttons = awful.button({}, 1, function()
-			target = (target + 1) % 2
-			timed.target = target
-		end),
+		buttons = gears.table.join(
+			--flip target and call other button
+			awful.button({}, 1, function() timed.target = (timed.target + 1) % 2 end),
+			args.button
+		),
 		widget = wibox.widget.make_base_widget,
 		forced_width = args.forced_width,
 		forced_height = args.forced_height,
@@ -123,6 +124,10 @@ local function playpause(args)
 			widget:emit_signal("widget::redraw_needed")
 		end
 	}
+
+	function widget:set(val)
+		timed.target = val
+	end
 
 	return widget
 end

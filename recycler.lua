@@ -1,125 +1,4 @@
-local wibox = require "wibox"
 local rubato = require "lib.rubato"
-
---[[
-recycler = recycler()
-recycler:add(notif)
-recycler:remove(1)
-
-
-possible animation styles:
-dissapear
-slide up
-
-constructor function must be able to:
-return a widget
-widget must have method "populate" which gives it values
-
-
-
-]]
-
-
-local function create(constructor, args)
-	local obj = {}
-	obj.invisible = {}
-	obj.visible = {}
-	obj.by_args = {}
-
-	args = args or {}
-	local spacing = args.spacing or 15
-
-	--keeps track of stuff for each widget
-	--specifically, their timed objects and the function to redraw them both
-	local wdata = {}
-
-	obj.layout = wibox.layout.manual()
-
-	---@diagnostic disable-next-line: redefined-local
-	local function request_widget(args)
-		local w
-		if #obj.invisible == 0 then
-			w = constructor()
-
-			--override draw method to get width and height
-			w._draw = w.draw;
-			function w:draw(ctx, cr, width, height, ...)
-				self.width, self.height = width, height
-				self._draw(self, ctx, cr, width, height, ...)
-			end
-
-			wdata[w] = {
-				redraw = function() obj.layout:move_widget(w, {x=0, y=wdata[w].pos.pos + 8 * wdata[w].inout.pos}); w.opacity = wdata[w].inout.pos end,
-				inout = rubato.timed {duration=0.2, intro=0.1, pos=0},
-				pos = rubato.timed {duration=0.2, intro=0.1, pos=0},
-			}
-			--we subscribe the functions seperately because they depend on eachother so the timeds must be instantiated first
-			--rubato calls the subscribed funcitons as soon as they're subscribed so we have to delay subscribing them
-			wdata[w].inout:subscribe(function(_, time) wdata[w].redraw(); if time == 0.3 then obj.invisible[#obj.invisible+1] = w end end)
-			wdata[w].pos:subscribe(function() wdata[w].redraw() end)
-
-			obj.layout:add_at(w, {x=0, y=0})
-
-		else w = table.remove(obj.invisible, #obj.invisible) end
-		--constructor must create a widget with this method
-		--this passes in all the args necessary
-		w:populate(args)
-		obj.by_args[args] = w
-		return w
-	end
-
-	--get the position of something based off all the elements before it
-	--memoize past values so it's not n^2 because that would be icky
-	local positions = setmetatable({}, {__mode="kv"})
-	local function get_pos_at_index(index)
-		local total
-		if not positions[index-1] then
-			total = (index - 1) * spacing
-			for i=1, index-1 do total = total + (obj.visible[i].height or 0) end
-		else total = positions[index-1] + spacing + (obj.visible[index-1].height or 0) end
-		positions[index] = total
-		return total
-	end
-
-	--update indices of tables
-	local function reorder() for i, w in pairs(obj.visible) do wdata[w].pos.target = get_pos_at_index(i) end end
-
-	--they look weird because it looks cooler actually
-	--returns the widget and the position of that widget
-	function obj:add(...)
-		local w = request_widget(...); --get widget
-		--TEST("adding"..tostring(...).."at index"..(#obj.visible+1))
-		obj.visible[#obj.visible+1] = w --add widget to visible
-		wdata[w].inout.target = 1 --appear it
-
-		reorder(); return w, #obj.visible
-	end
-	function obj:add_at(pos, ...)
-		local w = request_widget(...);
-		table.insert(obj.visible, pos, w)
-		wdata[w].inout.target = 1
-
-		reorder(); return w, pos
-	end
-	--we don't actually remove from the list here that's done in inout's subscribed 
-	--function so that it can fully animate out before it gets used again
-	function obj:remove(w)
-		wdata[w].inout.target = 0
-		local pos; for k,v in pairs(obj.visible) do if v == w then pos = k; table.remove(obj.visible, pos) end end
-
-		reorder(); return w, pos
-	end
-	function obj:remove_at(pos)
-		local w = wdata[obj.visible[pos]]; w.inout.target = 0
-		table.remove(obj.visible, pos)
-
-		reorder() return w, pos
-	end
-	function obj:get_by_args(args) return obj.by_args[args] end
-
-	return obj
-end
-
 local base = require "wibox.widget.base"
 local gtable = require "gears.table"
 
@@ -134,7 +13,7 @@ local recycler_layout = {
 local function new_layout(constructor, args)
 	local res = base.make_widget(nil, nil, {enable_properties = true})
 	gtable.crush(res, recycler_layout, true)
-	gtable.crush(res, args, true)
+	gtable.crush(res, args or {}, true)
 
 	--properties
 	res._private.widgets = {} --visible widgets
@@ -163,7 +42,7 @@ end
 
 --layout superclass functions
 function recycler_layout:fit(_, width, height) return width, height end
-function recycler_layout:_place_with_orientation(widget, x, y, w, h, bigh, bigw)
+function recycler_layout:_place_with_orientation(widget, x, y, w, h, bigw, bigh)
 	if self.orientation == self.DOWN then return base.place_widget_at(widget, x, y, w, h)
 	elseif self.orientation == self.UP then return base.place_widget_at(widget, x, bigh-y, w, h)
 	elseif self.orientation == self.LEFT then return base.place_widget_at(widget, y, x, w, h)

@@ -29,7 +29,6 @@ local function create_slider(args)
 	args.forced_height = args.forced_height or nil
 	args.forced_width = args.forced_width or nil
 
-
 	local dim = 0
 	local value = 0
 	local w = 0
@@ -195,6 +194,24 @@ local function create_slider(args)
 		bar:emit_signal("widget::redraw_needed")
 	end
 
+	local mt = getmetatable(widget)
+	setmetatable(widget, {})
+	local ___index = mt.__index
+	local ___newindex = mt.___newindex
+	function mt:__index(key)
+		--autogenerate getters and setters
+		if key:match("set_") and args[key:sub(5)] then return function(_, v) args[key:sub(5)] = v; print(key, v) end end
+		if key:match("get_") and args[key:sub(5)] then return function() return args[key:sub(5)] end end
+
+		--otherwise pass to widget.base
+		return ___index(self, key)
+	end
+	function mt:__newindex(key, value)
+		if args[key] then args[key] = value; return end
+		return ___newindex(self, key, value)
+	end
+
+	setmetatable(widget, mt)
 
 	return widget
 end

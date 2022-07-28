@@ -1,4 +1,5 @@
-local rubato = require "lib.rubato"
+---@diagnostic disable-next-line: undefined-global
+local timed = require(RUBATO_DIR.."timed")
 local base = require "wibox.widget.base"
 local gtable = require "gears.table"
 
@@ -34,19 +35,19 @@ local function new_layout(constructor, args)
 	res.scalex = res.scalex or 0
 	res.scaley = res.scaley or 1
 
-	res.inout_const = res.inout_const or function() return rubato.timed { duration = 0.2, intro = 0.3, prop_intro = true } end
-	res.pos_const = res.pos_const or function() return rubato.timed { duration = 0.2, intro = 0.3, prop_intro = true } end
+	res.inout_const = res.inout_const or function() return timed { duration = 0.2, intro = 0.3, prop_intro = true } end
+	res.pos_const = res.pos_const or function() return timed { duration = 0.2, intro = 0.3, prop_intro = true } end
 
 	return res
 end
 
 --layout superclass functions
 function recycler_layout:fit(_, width, height) return width, height end
-function recycler_layout:_place_with_orientation(widget, x, y, w, h, bigw, bigh)
+function recycler_layout:_place_with_orientation(widget, x, y, w, h, max)
 	if self.orientation == self.DOWN then return base.place_widget_at(widget, x, y, w, h)
-	elseif self.orientation == self.UP then return base.place_widget_at(widget, x, bigh-y, w, h)
+	elseif self.orientation == self.UP then return base.place_widget_at(widget, x, max-y-h, w, h)
 	elseif self.orientation == self.LEFT then return base.place_widget_at(widget, y, x, w, h)
-	elseif self.orientation == self.RIGHT then return base.place_widget_at(widget, bigw-y, x, w, h)
+	elseif self.orientation == self.RIGHT then return base.place_widget_at(widget, max-y-w, x, w, h)
 	end
 end
 function recycler_layout:layout(context, width, height)
@@ -57,8 +58,13 @@ function recycler_layout:layout(context, width, height)
 		self._private.unused,
 		self._private.between
 
-	local data, prevdata
+	local data, prevdata, max
 	local to_remove = {}
+
+	--get maximum height/width for not drawing out of bounds
+	if self.orientation == self.DOWN or self.orientation == self.UP then max = height
+	elseif self.orientation == self.LEFT or self.orientation == self.RIGHT then max = width
+	end
 
 	--draw currently visible widges
 	for i, w in pairs(widgets) do
@@ -66,6 +72,10 @@ function recycler_layout:layout(context, width, height)
 		data, prevdata = wdata[w], wdata[widgets[i-1]]
 		data.w, data.h = base.fit_widget(self, context, w, width, height)
 		data.y = prevdata and prevdata.y + prevdata.h + self.spacing or self.pady
+
+		--don't draw outside of bounds
+		--TODO: make work for different orientations
+		if data.y > max then break end;
 
 		data.pos.target = data.y
 		w.opacity = data.inout.pos
@@ -76,14 +86,16 @@ function recycler_layout:layout(context, width, height)
 			data.pos.pos - (1-data.inout.pos) * self.fadedist * self.scaley,
 			data.w,
 			data.h,
-			width,
-			height))
+			max))
 	end
 
 	for i, w in pairs(between) do
 
 		data = wdata[w]
 		data.w, data.h = base.fit_widget(self, context, w, width, height)
+
+		--don't draw outside of bounds
+		if data.y > max then break end;
 
 		w.opacity = data.inout.pos
 
@@ -98,8 +110,7 @@ function recycler_layout:layout(context, width, height)
 			data.pos.pos - (1-data.inout.pos) * self.fadedist * self.scaley,
 			data.w,
 			data.h,
-			width,
-			height))
+			max))
 	end
 
 	--remove widgets to be removed
@@ -154,7 +165,7 @@ function recycler_layout:add_at(pos, args)
 	return w, pos
 end
 function recycler_layout:remove_at(pos, w)
-	local w = w or self._private.widgets[pos]
+	w = w or self._private.widgets[pos]
 	local data, widgets, between = self._private.wdata[w], self._private.widgets, self._private.between
 
 	data.inout.target = 0

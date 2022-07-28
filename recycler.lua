@@ -1,4 +1,3 @@
-local rubato = require "lib.rubato"
 local base = require "wibox.widget.base"
 local gtable = require "gears.table"
 
@@ -34,8 +33,9 @@ local function new_layout(constructor, args)
 	res.scalex = res.scalex or 0
 	res.scaley = res.scaley or 1
 
-	res.inout_const = res.inout_const or function() return rubato.timed { duration = 0.2, intro = 0.3, prop_intro = true } end
-	res.pos_const = res.pos_const or function() return rubato.timed { duration = 0.2, intro = 0.3, prop_intro = true } end
+	res.rubato_lib = res.rubato_lib or require "lib.rubato"
+	res.inout_const = res.inout_const or function() return res.rubato_lib.timed { duration = 0.2, intro = 0.3, prop_intro = true } end
+	res.pos_const = res.pos_const or function() return res.rubato_lib.timed { duration = 0.2, intro = 0.3, prop_intro = true } end
 
 	return res
 end

@@ -74,7 +74,6 @@ function recycler_layout:layout(context, width, height)
 		data.y = prevdata and prevdata.y + prevdata.h + self.spacing or self.pady
 
 		--don't draw outside of bounds
-		--TODO: make work for different orientations
 		if data.y > max then break end;
 
 		data.pos.target = data.y
@@ -102,7 +101,7 @@ function recycler_layout:layout(context, width, height)
 		--check for inout being zero and deletion is done here because I can't ensure
 		--that inout's subscribed function gets called if it's immediately added then
 		--deleted, resulting in an invisible widet.
-		if data.inout.pos == 0 then table.insert(to_remove, i) end
+		if data.inout.pos == 0 then table.insert(to_remove, i); goto continue end
 
 		table.insert(res, self:_place_with_orientation(
 			w,
@@ -111,6 +110,8 @@ function recycler_layout:layout(context, width, height)
 			data.w,
 			data.h,
 			max))
+
+		::continue::
 	end
 
 	--remove widgets to be removed
@@ -131,15 +132,15 @@ function recycler_layout:_request_widget(args)
 	local unused, wdata = self._private.unused, self._private.wdata
 
 	--if we don't have a widget available create a new one
-	if #unused == 0 then
-		w = self._private.const()
-
-		wdata[w] = { w=0, h=0, y=0, inout = self.inout_const(), pos = self.pos_const() }
-		wdata[w].inout:subscribe(function() self:emit_signal("widget::layout_changed") end)
-		wdata[w].pos:subscribe(function() self:emit_signal("widget::layout_changed") end)
-
 	--if we already have a widget just use that
+	if #unused == 0 then w = self._private.const()
 	else w = table.remove(unused, #unused) end
+
+	--reset/create wdata
+	wdata[w] = { w=0, h=0, y=0, inout = self.inout_const(), pos = self.pos_const() }
+	wdata[w].inout:subscribe(function() self:emit_signal("widget::layout_changed") end)
+	wdata[w].pos:subscribe(function() self:emit_signal("widget::layout_changed") end)
+
 
 	--constructor must create a widget with this method
 	--this passes in a single variable, ideally something unique
@@ -165,11 +166,16 @@ function recycler_layout:add_at(pos, args)
 	return w, pos
 end
 function recycler_layout:remove_at(pos, w)
+	--if pos is nil very bad things happen
+	print(pos, w)
+	if not pos then return end
+
 	w = w or self._private.widgets[pos]
 	local data, widgets, between = self._private.wdata[w], self._private.widgets, self._private.between
 
 	data.inout.target = 0
 
+	--print(table.tostring(widgets))
 	table.insert(between, table.remove(widgets, pos))
 
 	self:emit_signal("widget::layout_changed")

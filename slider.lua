@@ -32,15 +32,19 @@ local function create_slider(args)
 	local dim = 0
 	local value = 0
 	local w = 0
+	local doing_mouse_things = false
 
 	local bar_start, bar_end, bar_current, height2, hb2, pi2, value_min, value_max
-	hb2 = args.height_bar / 2 --know this is correct
-	bar_start = args.lw_margins+hb2
-	bar_end = w-(bar_start)
-	bar_current = value+args.height_bar
-	pi2 = math.pi * 2
-	value_min = args.lw_margins-hb2
-	value_max = w-bar_start-hb2
+	local function make_vars()
+		hb2 = args.height_bar / 2 --know this is correct
+		bar_start = args.lw_margins+hb2
+		bar_end = w-(bar_start)
+		bar_current = value+args.height_bar
+		pi2 = math.pi * 2
+		value_min = args.lw_margins-hb2
+		value_max = w-bar_start-hb2
+	end
+	make_vars()
 
 	local bar = wibox.widget {
 		fit = function(_, _, width, height) return width, height end,
@@ -159,7 +163,8 @@ local function create_slider(args)
 		mousegrabber.run(function(mouse)
 			--stop (and emit signal) if you release mouse 1
 			if not mouse.buttons[1] then
-				widget:emit_signal("slider::really_ended")
+				widget:emit_signal("slider::ended_mouse_things", timed.target / value_max)
+				doing_mouse_things = false
 				return false
 			end
 
@@ -167,6 +172,9 @@ local function create_slider(args)
 			if not ipos then ipos = mouse.x end
 
 			lpos = x + mouse.x - ipos - args.height_bar
+
+			--let the people know that it's doing mouse things
+			doing_mouse_things = true
 
 			--short circuit if above or below
 			if lpos < value_min then
@@ -190,9 +198,12 @@ local function create_slider(args)
 	function widget:hard_set(val)
 		value = (value_max - value_min) * val + value_min
 		timed.pos = value
-		layout:move(1, set_x(value))
+		timed:fire()
 		bar:emit_signal("widget::redraw_needed")
 	end
+
+	--let the poeple know that it's doing mouse things
+	function widget:is_doing_mouse_things() return doing_mouse_things end
 
 	local mt = getmetatable(widget)
 	setmetatable(widget, {})
@@ -200,7 +211,7 @@ local function create_slider(args)
 	local ___newindex = mt.___newindex
 	function mt:__index(key)
 		--autogenerate getters and setters
-		if key:match("set_") and args[key:sub(5)] then return function(_, v) args[key:sub(5)] = v; print(key, v) end end
+		if key:match("set_") and args[key:sub(5)] then return function(_, v) args[key:sub(5)] = v; make_vars() end end
 		if key:match("get_") and args[key:sub(5)] then return function() return args[key:sub(5)] end end
 
 		--otherwise pass to widget.base

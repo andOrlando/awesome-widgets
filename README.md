@@ -109,47 +109,81 @@ pushes both to the ends of the space)
 
 # recycler
 
-This one is also really cool. Basically it recycles widgets (who could've guessed with a name like that!). When you remove a widget, instead of just evaporating it, it saves its basic structure and allows it to be called later. To use it, you must have a special widget-constructor-function-thing and to add a widget to the layout, instead of adding an actual widget object, you just add the arguments you would give to said constructor. The widgets created by the constructor must have the method `populate` so it knows what to do with the arguments. A minimal example:
-```lua
-local recycler = require "lib.awesome-widgets.recycler"
-local layout = recycler(function(str)
-	local w = wibox.widget.textbox()
-	function w:populate(str) self.text = str end
-	return w
+This one is also really cool. Basically it recycles widgets (who could've
+guessed with a name like that!). When you remove a widget, instead of just
+evaporating it, it saves its basic structure and allows it to be called later.
+To use it, you must have a special widget-constructor-function-thing and to add
+a widget to the layout, instead of adding an actual widget object, you just add
+the arguments you would give to said constructor. The widgets created by the
+constructor must have the method `populate` so it knows what to do with the
+arguments. A minimal example: ```lua local recycler = require
+"lib.awesome-widgets.recycler" local layout = recycler(function(str) local w =
+wibox.widget.textbox() function w:populate(str) self.text = str end return w
 end)
 
-recycler:add("dog") --adds it
-recycler:remove_by_args("dog") --removes it
+recycler:add("dog") --adds it recycler:remove_by_args("dog") --removes it
 recycler:add_at(1, "doggo") --adds "doggo" at position 1
-recycler:set_children("dog1", "dog2", "dog3") --removes all existing widgets and adds these three
-recycler:remove_at(2) --removes "dog2"
-```
-this creates a recycler that generates simple textboxes. here's the actual api:
+recycler:set_children("dog1", "dog2", "dog3") --removes all existing widgets and
+adds these three recycler:remove_at(2) --removes "dog2" ``` this creates a
+recycler that generates simple textboxes. here's the actual api:
 
-**initialization**
-`recycler(constructor, arguments)`
- - `constructor` must return a widget with the method `populate`. It will be called as a method (with a `:`) and should make the widget look how you want it to look with the given arguments. Arguments to populate can be anything, but tables are suggested (for preventing collisions in `remove_by_args`) and it will only use the first element to index itself in the internal table `by_args`.
- - `arguments` table containing any of the values outlined in the **Arguments** section
+**initialization** `recycler(constructor, arguments)`
+ - `constructor` must return a widget with the method `populate`. It will be
+   called as a method (with a `:`) and should make the widget look how you want
+   it to look with the given arguments. Arguments to populate can be anything,
+   but tables are suggested (for preventing collisions in `remove_by_args`) and
+   it will only use the first element to index itself in the internal table
+   `by_args`.
+ - `arguments` table containing any of the values outlined in the **Arguments**
+   section
 
 **Arguments**
- - `pady` y padding. It's suggested to use this instead of a margin layout so your flyin/outs can have enough space to animate correctly. Also, if orientation is `LEFT` or `RIGHT` then the x padding and y padding switch because it'd actually be kinda annoying to do otherwise (but if it irks you and you wanna change it feel free to make a pull request) (def `8`)
+ - `pady` y padding. It's suggested to use this instead of a margin layout so
+   your flyin/outs can have enough space to animate correctly. Also, if
+   orientation is `LEFT` or `RIGHT` then the x padding and y padding switch
+   because it'd actually be kinda annoying to do otherwise (but if it irks you
+   and you wanna change it feel free to make a pull request) (def `8`)
  - `padx` x padding. (def `8`)
  - `spacing` spacing between widgets (def. same as `pady`)
- - `fadedist` distance the widget will travel while fading in or out (def. `spacing / 2`)
- - `scalex` scale distance it travels in the x direction while fading in/out (def. `0`)
- - `scaley` scale distance it travels in the y direction while fading in/out (def. `1`)
- - `inout_const` constructor for inout rubato timed object (def. `function() return rubato.timed { duration = 0.2, intro = 0.3, prop_intro = true } end`)
- - `pos_const` constructor for position rubato timed object (def. `function() return rubato.timed { duration = 0.2, intro = 0.3, prop_intro = true } end`)
+ - `fadedist` distance the widget will travel while fading in or out (def.
+   `spacing / 2`)
+ - `scalex` scale distance it travels in the x direction while fading in/out
+   (def. `0`)
+ - `scaley` scale distance it travels in the y direction while fading in/out
+   (def. `1`)
+ - `inout_const` constructor for inout rubato timed object (def. `function()
+   return rubato.timed { duration = 0.2, intro = 0.3, prop_intro = true } end`)
+ - `pos_const` constructor for position rubato timed object (def. `function()
+   return rubato.timed { duration = 0.2, intro = 0.3, prop_intro = true } end`)
 
 **Methods**
- - `recycler:add(args)` adds a widget with the given arguments. Arguments must be in the form of a single table otherwise `get_by_args` won't work. The arguments will then be passed to the widget's `populate` method. Returns the added widget and the position it was added to.
- - `recycler:add_at(pos, args)` adds a widget with the given arguments at a specific position. Is otherwise identical to add. Returns the new widget and the position it was added to.
- - `recycler:remove(w)` removes a widget. w is a widget object. Returns the removed widget and the position it was removed from.
- - `recycler:remove_at(pos)` removes a widget at the specified position. Is otherwise identical to remove. returns the removed widget and the position it was removed from.
- - `recycler:remove_by_args(args)` removes a widget by the arguments given to it. Since the arguments were given in the form of the table, you don't really need to worry about collision. It's usually easier to identify widgets by the arguments you passed in rather than the widget itself or its position. Returns the removed widget and the position it was removed from.
- - `recycler:get_by_args(args)` returns the widget that was created using the given arguments
- - `recycler:set_children(...)` takes an indefinite amount of tables of arguments (as you would pass to 
+ - `recycler:add(args)` adds a widget with the given arguments. Arguments must
+   be in the form of a single table otherwise `get_by_args` won't work. The
+   arguments will then be passed to the widget's `populate` method. Returns the
+   added widget and the position it was added to.
+ - `recycler:add_at(pos, args)` adds a widget with the given arguments at a
+   specific position. Is otherwise identical to add. Returns the new widget and
+   the position it was added to.
+ - `recycler:remove(w)` removes a widget. w is a widget object. Returns the
+   removed widget and the position it was removed from.
+ - `recycler:remove_at(pos)` removes a widget at the specified position. Is
+   otherwise identical to remove. returns the removed widget and the position it
+   was removed from.
+ - `recycler:remove_by_args(args)` removes a widget by the arguments given to
+   it. Since the arguments were given in the form of the table, you don't really
+   need to worry about collision. It's usually easier to identify widgets by the
+   arguments you passed in rather than the widget itself or its position.
+   Returns the removed widget and the position it was removed from.
+ - `recycler:get_by_args(args)` returns the widget that was created using the
+   given arguments
+ - `recycler:set_children(...)` takes an indefinite amount of tables of
+   arguments (as you would pass to 
  - `recycler:get_children()` get all visible widgets
+
+**NOTE:** make sure to reset everything in the `populate` method. If your
+widget's size would change with different values given to `populate`, make sure
+to call `mywidget:emit_signal("widget::redraw_needed")` so it can get the new
+size correctly.
 
 # TODO:
 - [ ] add gifs

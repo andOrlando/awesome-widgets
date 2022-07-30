@@ -125,9 +125,8 @@ local function playpause(args)
 		end
 	}
 
-	function widget:set(val)
-		timed.target = val
-	end
+	function widget:set(val) timed.target = val end
+	function widget:get() return timed.target end
 
 	return widget
 end

@@ -1,4 +1,4 @@
----@diagnostic disable-next-line: undefined-global
+-i--@diagnostic disable-next-line: undefined-global
 local timed = require(RUBATO_DIR.."timed")
 local base = require "wibox.widget.base"
 local gtable = require "gears.table"
@@ -167,7 +167,6 @@ function recycler_layout:add_at(pos, args)
 end
 function recycler_layout:remove_at(pos, w)
 	--if pos is nil very bad things happen
-	print(pos, w)
 	if not pos then return end
 
 	w = w or self._private.widgets[pos]
@@ -175,7 +174,6 @@ function recycler_layout:remove_at(pos, w)
 
 	data.inout.target = 0
 
-	--print(table.tostring(widgets))
 	table.insert(between, table.remove(widgets, pos))
 
 	self:emit_signal("widget::layout_changed")

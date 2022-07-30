@@ -1,4 +1,4 @@
--i--@diagnostic disable-next-line: undefined-global
+---@diagnostic disable-next-line: undefined-global
 local timed = require(RUBATO_DIR.."timed")
 local base = require "wibox.widget.base"
 local gtable = require "gears.table"

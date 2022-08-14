@@ -7,6 +7,9 @@ actually like because they're kinda useful. I will probably continue adding to
 this as I make more widgets that other people might find useful. I'll also
 outline what each of the widgets do.
 
+Video of both an animated icon and slider since I kinda use them in tandem
+<video src="https://user-images.githubusercontent.com/59105749/184553258-285fa781-b5c8-4124-aa44-5de47b2ae7b6.mp4"></video>
+
 # animated icons
 
 currently available: hamburger and playpause
@@ -116,16 +119,30 @@ To use it, you must have a special widget-constructor-function-thing and to add
 a widget to the layout, instead of adding an actual widget object, you just add
 the arguments you would give to said constructor. The widgets created by the
 constructor must have the method `populate` so it knows what to do with the
-arguments. A minimal example: ```lua local recycler = require
-"lib.awesome-widgets.recycler" local layout = recycler(function(str) local w =
-wibox.widget.textbox() function w:populate(str) self.text = str end return w
+arguments. A minimal example: 
+
+```lua 
+local recycler = require "lib.awesome-widgets.recycler"
+local layout = recycler(function(str)
+	local w = wibox.widget.textbox()
+	function w:populate(str) self.text = str end 
+	return w
 end)
 
-recycler:add("dog") --adds it recycler:remove_by_args("dog") --removes it
+recycler:add("dog") --adds it
+recycler:remove_by_args("dog") --removes it
 recycler:add_at(1, "doggo") --adds "doggo" at position 1
-recycler:set_children("dog1", "dog2", "dog3") --removes all existing widgets and
-adds these three recycler:remove_at(2) --removes "dog2" ``` this creates a
-recycler that generates simple textboxes. here's the actual api:
+recycler:set_children("dog1", "dog2", "dog3") --removes all existing widgets and adds these three
+recycler:remove_at(2) --removes "dog2"
+```
+
+this creates a recycler that generates simple textboxes. 
+
+An example in practice that I use for my notification center:
+<video src="https://user-images.githubusercontent.com/59105749/184553072-6165e922-156d-4cf8-9aa2-ea55fdb2a00c.mp4"></video>
+(ignore the default awesome notifications I still haven't disabled them for some reason...)
+
+here's the actual api:
 
 **initialization** `recycler(constructor, arguments)`
  - `constructor` must return a widget with the method `populate`. It will be

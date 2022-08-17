@@ -164,6 +164,7 @@ here's the actual api:
  - `spacing` spacing between widgets (def. same as `pady`)
  - `fadedist` distance the widget will travel while fading in or out (def.
    `spacing / 2`)
+ - `fadeamt` amount that the widget will fade in terms of opacity (def. `1`)
  - `scalex` scale distance it travels in the x direction while fading in/out
    (def. `0`)
  - `scaley` scale distance it travels in the y direction while fading in/out
@@ -174,22 +175,26 @@ here's the actual api:
    return rubato.timed { duration = 0.2, intro = 0.3, prop_intro = true } end`)
 
 **Methods**
- - `recycler:add(args)` adds a widget with the given arguments. Arguments must
-   be in the form of a single table otherwise `get_by_args` won't work. The
-   arguments will then be passed to the widget's `populate` method. Returns the
-   added widget and the position it was added to.
- - `recycler:add_at(pos, args)` adds a widget with the given arguments at a
-   specific position. Is otherwise identical to add. Returns the new widget and
-   the position it was added to.
- - `recycler:remove(w)` removes a widget. w is a widget object. Returns the
-   removed widget and the position it was removed from.
- - `recycler:remove_at(pos)` removes a widget at the specified position. Is
-   otherwise identical to remove. returns the removed widget and the position it
-   was removed from.
- - `recycler:remove_by_args(args)` removes a widget by the arguments given to
-   it. Since the arguments were given in the form of the table, you don't really
-   need to worry about collision. It's usually easier to identify widgets by the
-   arguments you passed in rather than the widget itself or its position.
+ - `recycler:add(args, opts)` adds a widget with the given arguments. Arguments
+   must be in the form of a single table otherwise `get_by_args` won't work. The
+   arguments will then be passed to the widget's `populate` method. `opts` is a
+   list of options to override for it's animation in. Any animation-related
+   values available in the constructor can be overridden. Returns the added
+   widget and the position it was added to.
+ - `recycler:add_at(pos, args, opts)` adds a widget with the given arguments at
+   a specific position. Is otherwise identical to add. Returns the new widget
+   and the position it was added to.
+ - `recycler:remove(w, opts)` removes a widget. w is a widget object. `opts` is
+   a list of options to override for it's animation out. Any animation-related
+   values available in the constructor can be overridden. Returns the removed
+   widget and the position it was removed from.
+ - `recycler:remove_at(pos, opts)` removes a widget at the specified position.
+   Is otherwise identical to remove. returns the removed widget and the position
+   it was removed from.
+ - `recycler:remove_by_args(args, opts)` removes a widget by the arguments given
+   to it. Since the arguments were given in the form of the table, you don't
+   really need to worry about collision. It's usually easier to identify widgets
+   by the arguments you passed in rather than the widget itself or its position.
    Returns the removed widget and the position it was removed from.
  - `recycler:get_by_args(args)` returns the widget that was created using the
    given arguments

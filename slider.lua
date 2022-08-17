@@ -34,17 +34,42 @@ local function create_slider(args)
 	local w = 0
 	local doing_mouse_things = false
 
-	local bar_start, bar_end, bar_current, height2, hb2, pi2, value_min, value_max
+	local bar_start, bar_end, bar_current, height2, hb2, pi2, value_min, value_max, effwidth
 	local function make_vars()
-		hb2 = args.height_bar / 2 --know this is correct
+		hb2 = args.height_bar / 2
 		bar_start = args.lw_margins+hb2
 		bar_end = w-(bar_start)
 		bar_current = value+args.height_bar
 		pi2 = math.pi * 2
 		value_min = args.lw_margins-hb2
 		value_max = w-bar_start-hb2
+		effwidth = value_max - value_min
 	end
 	make_vars()
+
+	local timed = rubato.timed {
+		intro = 0.1,
+		prop_intro = true,
+		duration = 0.075,
+	}
+
+	local handle = wibox.widget {
+		fit = function(_, _, height) return height, height end,
+		draw = function(_, _, cr, width, height)
+			cr:set_source_rgb(args.color_handle.r/255*(1-dim), args.color_handle.g/255*(1-dim), args.color_handle.b/255*(1-dim))
+			cr:arc(width / 2, height / 2, args.height_handle / 2, 0, pi2)
+			cr:fill()
+		end,
+		forced_width = args.height_handle + dpi(5),
+		forced_height = args.height_handle + dpi(5),
+		point = {x=0, y=0}, --initialize point for layout
+		widget = wibox.widget.make_base_widget
+	}
+
+	local layout = wibox.layout {
+		handle,
+		layout = wibox.layout.manual
+	}
 
 	local bar = wibox.widget {
 		fit = function(_, _, width, height) return width, height end,
@@ -53,7 +78,11 @@ local function create_slider(args)
 			bar_end = width-(bar_start) --update bar_end which depends on width
 			height2 = height/2 --update height2 which depends on height
 			value_max = width-bar_start-hb2
+			effwidth = value_max - value_min
+
+			value = effwidth * timed.pos + value_min
 			bar_current = value+args.height_bar
+			layout:move(1, set_x(value))
 
 			cr:set_line_width(args.height_bar)
 
@@ -80,23 +109,7 @@ local function create_slider(args)
 	}
 
 
-	local handle = wibox.widget {
-		fit = function(_, _, height) return height, height end,
-		draw = function(_, _, cr, width, height)
-			cr:set_source_rgb(args.color_handle.r/255*(1-dim), args.color_handle.g/255*(1-dim), args.color_handle.b/255*(1-dim))
-			cr:arc(width / 2, height / 2, args.height_handle / 2, 0, pi2)
-			cr:fill()
-		end,
-		forced_width = args.height_handle + dpi(5),
-		forced_height = args.height_handle + dpi(5),
-		point = {x=0, y=0}, --initialize point for layout
-		widget = wibox.widget.make_base_widget
-	}
-
-	local layout = wibox.layout {
-		handle,
-		layout = wibox.layout.manual
-	}
+	
 
 	local widget = wibox.widget {
 		bar,
@@ -106,34 +119,16 @@ local function create_slider(args)
 		layout = wibox.layout.stack
 	}
 
-	local ended = false
+	--local ended = false
 
-	local timed = rubato.timed {
-		intro = 0.1,
-		prop_intro = true,
-		duration = 0.075,
-		pos = value_min,
-		subscribed = function(pos, time, dt)
-			value = pos
-			layout:move(1, set_x(pos))
-			bar:emit_signal("widget::redraw_needed")
+	timed:subscribe(function(pos, time)
+		bar:emit_signal("widget::redraw_needed")
+		widget:emit_signal("slider::moved", pos)
 
-			widget:emit_signal("slider::moved",
-				(pos-value_min)/(value_max - value_min))
-
-			--do started and ended signals
-			if time == 0 then ended = false
-			elseif time == 0.075 then
-				ended = true
-				widget:emit_signal("slider::ended")
-			elseif ended then
-				ended = false
-				widget:emit_signal("slider::started")
-			end
-
-
-		end
-	}
+		--do started and ended signals
+		if time == 0 then widget:emit_signal("slider::started") end
+		if time == 0.75 then widget:emit_signal("slider::ended") end
+	end)
 
 	local hover_timed = rubato.timed {
 		intro = 0.2,
@@ -158,12 +153,12 @@ local function create_slider(args)
 		ipos = nil
 
 		--initially move it to the target (only one call of max and min is prolly fine)
-		timed.target = math.min(math.max(x - args.height_bar, bar_start), bar_end)
+		timed.target = math.min(math.max(((x - args.height_bar) / effwidth), 0), 1)
 
 		mousegrabber.run(function(mouse)
 			--stop (and emit signal) if you release mouse 1
 			if not mouse.buttons[1] then
-				widget:emit_signal("slider::ended_mouse_things", timed.target / value_max)
+				widget:emit_signal("slider::ended_mouse_things", timed.target)
 				doing_mouse_things = false
 				return false
 			end
@@ -171,19 +166,13 @@ local function create_slider(args)
 			--get initial position
 			if not ipos then ipos = mouse.x end
 
-			lpos = x + mouse.x - ipos - args.height_bar
+			lpos = (x + mouse.x - ipos - args.height_bar) / effwidth
 
 			--let the people know that it's doing mouse things
 			doing_mouse_things = true
 
-			--short circuit if above or below
-			if lpos < value_min then
-				timed.target = value_min
-
-			elseif lpos > value_max then
-				timed.target = value_max
-
-			else timed.target = lpos end
+			--make sure target \in (0, 1)
+			timed.target = math.max(math.min(lpos, 1), 0)
 
 			return true
 		end,"fleur")
@@ -192,12 +181,12 @@ local function create_slider(args)
 	end)
 
 	function widget:set(val)
-		timed.target = (value_max - value_min) * val + value_min
+		timed.target = val --(value_max - value_min) * val + value_min
 	end
 
 	function widget:hard_set(val)
-		value = (value_max - value_min) * val + value_min
-		timed.pos = value
+		timed.pos = val
+		timed.target = val
 		timed:fire()
 		bar:emit_signal("widget::redraw_needed")
 	end

@@ -30,6 +30,7 @@ local function new_layout(constructor, args)
 	res.spacing = res.spacing or res.padx
 
 	res.fadedist = res.fadedist or res.spacing / 2 --distance it travels when fading in or out
+	res.fadeamt = res.fadeamt or 1
 	res.orientation = res.orientation or recycler_layout.DOWN
 
 	res.scalex = res.scalex or 0
@@ -61,6 +62,11 @@ function recycler_layout:layout(context, width, height)
 	local data, prevdata, max
 	local to_remove = {}
 
+	--animopts are for overrides of animation options on fadein or fadeout if you wanna do that
+	--bcause it'd be sooooo coooool this isn't sarcasm it'll look sick
+	local base_animopts = {fadedist=self.fadedist, scalex=self.scalex, scaley=self.scaley, fadeamt=self.fadeamt}
+	local animopts
+
 	--get maximum height/width for not drawing out of bounds
 	if self.orientation == self.DOWN or self.orientation == self.UP then max = height
 	elseif self.orientation == self.LEFT or self.orientation == self.RIGHT then max = width
@@ -77,12 +83,13 @@ function recycler_layout:layout(context, width, height)
 		if data.y > max then break end;
 
 		data.pos.target = data.y
-		w.opacity = data.inout.pos
 
+		animopts = gtable.crush(base_animopts, data.fadeinopts)
+		w.opacity = (1-animopts.fadeamt) + animopts.fadeamt * data.inout.pos
 		table.insert(res, self:_place_with_orientation(
 			w,
-			self.padx - (1-data.inout.pos) * self.fadedist * self.scalex,
-			data.pos.pos - (1-data.inout.pos) * self.fadedist * self.scaley,
+			self.padx - (1-data.inout.pos) * animopts.fadedist * animopts.scalex,
+			data.pos.pos - (1-data.inout.pos) * animopts.fadedist * animopts.scaley,
 			data.w,
 			data.h,
 			max))
@@ -96,17 +103,19 @@ function recycler_layout:layout(context, width, height)
 		--don't draw outside of bounds
 		if data.y > max then break end;
 
-		w.opacity = data.inout.pos
 
 		--check for inout being zero and deletion is done here because I can't ensure
 		--that inout's subscribed function gets called if it's immediately added then
 		--deleted, resulting in an invisible widet.
-		if data.inout.pos == 0 then table.insert(to_remove, i); goto continue end
+		if data.inout.pos == 0 then table.insert(to_remove, i); w.opacity = 0; goto continue end
 
+
+		animopts = gtable.crush(base_animopts, data.fadeoutopts)
+		w.opacity = (1-animopts.fadeamt) + animopts.fadeamt * data.inout.pos
 		table.insert(res, self:_place_with_orientation(
 			w,
-			self.padx - (1-data.inout.pos) * self.fadedist * self.scalex,
-			data.pos.pos - (1-data.inout.pos) * self.fadedist * self.scaley,
+			self.padx - (1-data.inout.pos) * animopts.fadedist * animopts.scalex,
+			data.pos.pos - (1-data.inout.pos) * animopts.fadedist * animopts.scaley,
 			data.w,
 			data.h,
 			max))
@@ -152,7 +161,7 @@ function recycler_layout:_request_widget(args)
 end
 
 --important functions
-function recycler_layout:add_at(pos, args)
+function recycler_layout:add_at(pos, args, opts)
 	local w = self:_request_widget(args)
 	local data, widgets = self._private.wdata[w], self._private.widgets
 	local prevdata = self._private.wdata[widgets[pos-1]]
@@ -161,11 +170,12 @@ function recycler_layout:add_at(pos, args)
 
 	data.inout.target = 1
 	data.pos.pos = prevdata and prevdata.y + prevdata.h + self.spacing or self.pady
+	data.fadeinopts = opts or {}
 
 	self:emit_signal("widget::layout_changed")
 	return w, pos
 end
-function recycler_layout:remove_at(pos, w)
+function recycler_layout:remove_at(pos, w, opts)
 	--if pos is nil very bad things happen
 	if not pos then return end
 
@@ -173,6 +183,7 @@ function recycler_layout:remove_at(pos, w)
 	local data, widgets, between = self._private.wdata[w], self._private.widgets, self._private.between
 
 	data.inout.target = 0
+	data.fadeoutopts = opts or {}
 
 	table.insert(between, table.remove(widgets, pos))
 
@@ -181,9 +192,9 @@ function recycler_layout:remove_at(pos, w)
 end
 
 --shorthand functions
-function recycler_layout:add(args) local pos = #self._private.widgets + 1; return self:add_at(pos, args) end
-function recycler_layout:remove(w) local pos; for k,v in pairs(self._private.widgets) do if v == w then pos = k end end; return self:remove_at(pos, w) end
-function recycler_layout:remove_by_args(args) return self:remove(self:get_by_args(args)) end
+function recycler_layout:add(args, opts) local pos = #self._private.widgets + 1; return self:add_at(pos, args, opts) end
+function recycler_layout:remove(w, opts) local pos; for k,v in pairs(self._private.widgets) do if v == w then pos = k end end; return self:remove_at(pos, w, opts) end
+function recycler_layout:remove_by_args(args, opts) return self:remove(self:get_by_args(args), opts) end
 function recycler_layout:get_by_args(args) return self._private.by_args[args] end
 
 --return create

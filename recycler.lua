@@ -39,11 +39,12 @@ local function new_layout(constructor, args)
 	res.inout_const = res.inout_const or function() return timed { duration = 0.2, intro = 0.3, prop_intro = true } end
 	res.pos_const = res.pos_const or function() return timed { duration = 0.2, intro = 0.3, prop_intro = true } end
 
+	res.debug = res.debug or fals
+
 	return res
 end
 
 --layout superclass functions
-function recycler_layout:fit(_, width, height) return width, height end
 function recycler_layout:_place_with_orientation(widget, x, y, w, h, max)
 	if self.orientation == self.DOWN then return base.place_widget_at(widget, x, y, w, h)
 	elseif self.orientation == self.UP then return base.place_widget_at(widget, x, max-y-h, w, h)
@@ -51,7 +52,42 @@ function recycler_layout:_place_with_orientation(widget, x, y, w, h, max)
 	elseif self.orientation == self.RIGHT then return base.place_widget_at(widget, max-y-w, x, w, h)
 	end
 end
+function recycler_layout:fit(context, width, height)
+	--if orientation is down or up then use height of widgets
+	--otherwise idk I haven't implemented it yet
+	local wdata, widgets, between =
+		self._private.wdata,
+		self._private.widgets,
+		self._private.between
+
+	if self.debug then print(("called fit with w%i h%i"):format(width, height)) end
+
+	local h
+	local used = self.pady
+	for i, widget in pairs(widgets) do
+		_, h = base.fit_widget(self, context, widget, width, math.huge)
+		used = used + h + (i ~= #widgets and self.spacing or self.pady)
+		if self.debug then print(("#%i h%i sum%i widget %s"):format(i, h, used, widget)) end
+	end
+
+	for i, widget in pairs(between) do
+		if wdata[widget].inout.pos == 0 then goto continue end
+
+		_, h = base.fit_widget(self, context, widget, width, math.huge)
+		used = used + h + (#widgets ~= 0 and self.spacing or self.pady)
+		if self.debug then print(("#%i h%i sum%i widget %s"):format(i, h, used, widget)) end
+
+	::continue:: end
+
+	if self.debug then print(("fitting h%i"):format(math.min(used, height))) end
+
+	return width, math.min(used, height)
+
+end
 function recycler_layout:layout(context, width, height)
+
+	if self.debug then print(("laying out h%i"):format(height)) end
+
 	local res = {}
 	local wdata, widgets, unused, between =
 		self._private.wdata,
@@ -76,7 +112,7 @@ function recycler_layout:layout(context, width, height)
 	for i, w in pairs(widgets) do
 
 		data, prevdata = wdata[w], wdata[widgets[i-1]]
-		data.w, data.h = base.fit_widget(self, context, w, width, height)
+		data.w, data.h = base.fit_widget(self, context, w, width, math.huge)
 		data.y = prevdata and prevdata.y + prevdata.h + self.spacing or self.pady
 
 		--don't draw outside of bounds
@@ -98,7 +134,7 @@ function recycler_layout:layout(context, width, height)
 	for i, w in pairs(between) do
 
 		data = wdata[w]
-		data.w, data.h = base.fit_widget(self, context, w, width, height)
+		data.w, data.h = base.fit_widget(self, context, w, width, math.huge)
 
 		--don't draw outside of bounds
 		if data.y > max then break end;
@@ -142,6 +178,7 @@ function recycler_layout:_request_widget(args)
 
 	--if we don't have a widget available create a new one
 	--if we already have a widget just use that
+	if self.debug then print("widget created") end
 	if #unused == 0 then w = self._private.const()
 	else w = table.remove(unused, #unused) end
 
@@ -162,6 +199,7 @@ end
 
 --important functions
 function recycler_layout:add_at(pos, args, opts)
+	if self.debug then print("addat called") end
 	local w = self:_request_widget(args)
 	local data, widgets = self._private.wdata[w], self._private.widgets
 	local prevdata = self._private.wdata[widgets[pos-1]]
@@ -173,6 +211,7 @@ function recycler_layout:add_at(pos, args, opts)
 	data.fadeinopts = opts or {}
 
 	self:emit_signal("widget::layout_changed")
+	print("after layout changed -------\n")
 	return w, pos
 end
 function recycler_layout:remove_at(pos, w, opts)

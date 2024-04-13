@@ -234,7 +234,9 @@ end
 function recycler_layout:add(args, opts) local pos = #self._private.widgets + 1; return self:add_at(pos, args, opts) end
 function recycler_layout:remove(w, opts) local pos; for k,v in pairs(self._private.widgets) do if v == w then pos = k end end; return self:remove_at(pos, w, opts) end
 function recycler_layout:remove_by_args(args, opts) return self:remove(self:get_by_args(args), opts) end
+function recycler_layout:remove_by_id(args, opts) return self:remove(self:get_by_args(args), opts) end
 function recycler_layout:get_by_args(args) return self._private.by_args[args] end
+function recycler_layout:get_by_id(args) return self._private.by_args[args] end
 
 --return create
 return setmetatable(recycler_layout, {__call=function(_,...) return new_layout(...) end})

@@ -5,5 +5,6 @@ return {
 	playpause = require(AWESOME_WIDGETS_DIR.."icons.playpause"),
 	slider = require(AWESOME_WIDGETS_DIR.."slider"),
 	coolwidget = require(AWESOME_WIDGETS_DIR.."coolwidget"),
+	recycler = require(AWESOME_WIDGETS_DIR.."recycler")
 }
 
